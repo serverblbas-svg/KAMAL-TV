@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ماڵپەڕی کەناڵەکانی من</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { color: #00adb5; }
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .player-section {
+            flex: 2;
+            background: #222831;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        video {
+            width: 100%;
+            border-radius: 6px;
+            background: black;
+            max-height: 500px;
+        }
+        .playlist-section {
+            flex: 1;
+            background: #393e46;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .channel-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #222831;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: right;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+        .channel-btn:hover {
+            background: #00adb5;
+        }
+        #current-title {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #00adb5;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📺 لایڤ تیڤی - کەناڵەکانت</h1>
+    
+    <div class="container">
+        <div class="player-section">
+            <video id="videoPlayer" controls autoplay></video>
+            <div id="current-title">تکایە کەناڵێک هەڵبژێره</div>
+        </div>
+
+        <div class="playlist-section" id="channelList">
+            <p>باردەکرێت...</p>
+        </div>
+    </div>
+
+    <script>
+        fetch('/get_channels')
+            .then(res => res.json())
+            .then(data => {
+                const listDiv = document.getElementById('channelList');
+                listDiv.innerHTML = ''; 
+                
+                if(!data || data.length === 0) {
+                    listDiv.innerHTML = '<p>هیچ داتایەک لە سێرڤەرەوە نەهات!</p>';
+                    return;
+                }
+
+                data.forEach(channel => {
+                    // دۆزینەوەی ناو و بەستەر بە شێوەی زیرەک
+                    let name = channel.name || channel.title || channel.channel_name || channel.nama;
+                    let url = channel.url || channel.link || channel.stream_url || channel.linki;
+
+                    // ئەگەر بە ناوی ستوونەکان نەیدۆزییەوە، یەکەم و دووەم بەهای ناو ڕیزەکە وەردەگرێت
+                    const keys = Object.keys(channel);
+                    if (!name && keys.length > 0) name = channel[keys[0]]; 
+                    if (!url && keys.length > 1) url = channel[keys[1]];
+                    
+                    // ئەگەر ناوی ستوونی یەکەم ئایدی بوو (وەک 1, 2, 3)، با ناوی ستوونی دووەم تاقی بکاتەوە
+                    if (typeof name === 'number' && keys.length > 1) {
+                        name = channel[keys[1]];
+                        url = channel[keys[2]] || url;
+                    }
+
+                    if(name && url) {
+                        const btn = document.createElement('button');
+                        btn.className = 'channel-btn';
+                        btn.innerText = name;
+                        btn.onclick = () => playChannel(url, name);
+                        listDiv.appendChild(btn);
+                    }
+                });
+            })
+            .catch(err => {
+                document.getElementById('channelList').innerHTML = '<p>خەتا لە بەستنەوەی سێرڤەر: ' + err + '</p>';
+            });
+
+        function playChannel(url, name) {
+            const player = document.getElementById('videoPlayer');
+            document.getElementById('current-title').innerText = "ئێستا لێدەدات: " + name;
+            player.src = url;
+            player.play().catch(e => console.log("لێدانی ڤیدیۆکە کێشەی هەیە:", e));
+        }
+    </script>
+</body>
+</html>
